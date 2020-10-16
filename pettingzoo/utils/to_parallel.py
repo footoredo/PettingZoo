@@ -2,6 +2,7 @@ from pettingzoo.utils.env import AECEnv
 from pettingzoo.utils._parallel_env import _parallel_env_wrapper
 from pettingzoo.utils.wrappers import OrderEnforcingWrapper
 from pettingzoo.utils.env import ParallelEnv
+import numpy as np
 
 
 class to_parallel(ParallelEnv):
@@ -30,7 +31,7 @@ class to_parallel(ParallelEnv):
         stepped_agents = set()
         while (self.aec_env.agent_selection not in stepped_agents and self.aec_env.dones[self.aec_env.agent_selection]):
             agent = self.aec_env.agent_selection
-            self.aec_env.step(None)
+            self.aec_env.step(np.nan)
             stepped_agents.add(agent)
 
         stepped_agents = set()
