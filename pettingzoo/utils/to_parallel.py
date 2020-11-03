@@ -9,6 +9,7 @@ class to_parallel(ParallelEnv):
     def __init__(self, aec_env):
         self.aec_env = aec_env
         self.observation_spaces = aec_env.observation_spaces
+        self.input_structures = aec_env.input_structures
         self.action_spaces = aec_env.action_spaces
         self.agents = aec_env.agents
         self.num_agents = aec_env.num_agents
@@ -63,6 +64,7 @@ class to_parallel(ParallelEnv):
 def parallel_wrapper_fn(env_fn):
     def par_fn(**kwargs):
         env = env_fn(**kwargs)
+        # print(env)
         env = to_parallel(env)
         return env
     return par_fn

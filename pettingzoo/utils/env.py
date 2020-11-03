@@ -9,6 +9,10 @@ class AECEnv:
     def __init__(self):
         pass
 
+    def get_input_structures(self):
+        # print(self)
+        raise NotImplementedError
+
     def step(self, action, observe=True):
         raise NotImplementedError
 

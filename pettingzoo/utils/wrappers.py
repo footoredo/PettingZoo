@@ -22,6 +22,7 @@ class BaseWrapper(AECEnv):
         self.num_agents = self.env.num_agents
         self.agents = self.env.agents
         self.observation_spaces = self.env.observation_spaces
+        self.input_structures = self.env.input_structures
         self.action_spaces = self.env.action_spaces
 
         # we don't want these defined as we don't want them used before they are gotten

@@ -59,11 +59,19 @@ class SimpleEnv(AECEnv):
 
         self.viewer = None
 
+        self.input_structures = {agent: self.scenario.get_input_structure(self.world.agents[self._index_map[agent]],
+                                                                          self.world) for agent in self.agents}
+
+
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
 
     def observe(self, agent):
         return self.scenario.observation(self.world.agents[self._index_map[agent]], self.world).astype(np.float32)
+
+    def update_info(self):
+        for agent in self.agents:
+            self.infos[agent] = self.scenario.get_info(self.world.agents[self._index_map[agent]], self.world)
 
     def reset(self, observe=True):
         self.scenario.reset_world(self.world, self.np_random)
@@ -78,6 +86,7 @@ class SimpleEnv(AECEnv):
         self.steps = 0
 
         self.current_actions = [None] * self.num_agents
+        self.update_info()
 
         if observe:
             return self.observe(self.agent_selection)
@@ -164,6 +173,7 @@ class SimpleEnv(AECEnv):
             next_observation = self.observe(self.agent_selection)
         else:
             next_observation = None
+        self.update_info()
         return next_observation
 
     def render(self, mode='human'):
@@ -239,3 +249,4 @@ class SimpleEnv(AECEnv):
             self.viewer.close()
             self.viewer = None
         self._reset_render()
+

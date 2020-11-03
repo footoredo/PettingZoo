@@ -4,7 +4,11 @@ from .._mpe_utils.scenario import BaseScenario
 
 
 class Scenario(BaseScenario):
+    def __init__(self):
+        self.world = None
+
     def make_world(self, num_good=1, num_adversaries=3, num_obstacles=2):
+        # print("!!!")
         world = World()
         # set any world properties first
         world.dim_c = 2
@@ -19,7 +23,7 @@ class Scenario(BaseScenario):
             base_name = "adversary" if agent.adversary else "agent"
             base_index = i if i < num_adversaries else i - num_adversaries
             agent.name = '{}_{}'.format(base_name, base_index)
-            agent.collide = True
+            agent.collide = True if agent.adversary else True
             agent.silent = True
             agent.size = 0.075 if agent.adversary else 0.05
             agent.accel = 3.0 if agent.adversary else 4.0
@@ -32,6 +36,7 @@ class Scenario(BaseScenario):
             landmark.movable = False
             landmark.size = 0.2
             landmark.boundary = False
+        self.world = world
         return world
 
     def reset_world(self, world, np_random):
@@ -50,6 +55,7 @@ class Scenario(BaseScenario):
             if not landmark.boundary:
                 landmark.state.p_pos = np_random.uniform(-0.9, +0.9, world.dim_p)
                 landmark.state.p_vel = np.zeros(world.dim_p)
+        world.steps = 0
 
     def benchmark_data(self, agent, world):
         # returns data for benchmarking purposes
@@ -114,13 +120,15 @@ class Scenario(BaseScenario):
         agents = self.good_agents(world)
         adversaries = self.adversaries(world)
         if shape:  # reward can optionally be shaped (decreased reward for increased distance from agents)
+            # for adv in adversaries:
+            adv = agent
+            rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
+        for ag in agents:
+            if self.is_collision(ag, agent):
+                rew += 5
             for adv in adversaries:
-                rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
-        if agent.collide:
-            for ag in agents:
-                for adv in adversaries:
-                    if self.is_collision(ag, adv):
-                        rew += 10
+                if self.is_collision(ag, adv):
+                    rew += 5
         return rew
 
     def observation(self, agent, world):
@@ -131,13 +139,26 @@ class Scenario(BaseScenario):
                 entity_pos.append(entity.state.p_pos - agent.state.p_pos)
         # communication of all other agents
         comm = []
-        other_pos = []
-        other_vel = []
+        other_info = []
         for other in world.agents:
             if other is agent:
                 continue
             comm.append(other.state.c)
-            other_pos.append(other.state.p_pos - agent.state.p_pos)
-            if not other.adversary:
-                other_vel.append(other.state.p_vel)
-        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel)
+            other_info.append(np.concatenate([other.state.p_vel, other.state.p_pos - agent.state.p_pos]))
+        return np.concatenate([np.array([world.steps])] + [agent.state.p_vel] + [agent.state.p_pos] + entity_pos +
+                              other_info)
+
+    def get_input_structure(self, agent, world):
+        dim_p = world.dim_p
+        input_structure = list()
+        input_structure.append(("self", dim_p * 2 + 1))
+        for _ in world.landmarks:
+            input_structure.append(("obstacle", dim_p))
+        for other in world.agents:
+            if other is agent:
+                continue
+            if other.adversary:
+                input_structure.append(("adversary", dim_p * 2))
+            else:
+                input_structure.append(("good", dim_p * 2))
+        return input_structure
